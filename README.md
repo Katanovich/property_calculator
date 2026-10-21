@@ -36,6 +36,17 @@ The app works in **English, Russian and Uzbek** and supports the **Uzbek so'm (U
 - Light and dark themes follow your device setting.
 - Works on phones and desktop.
 
+### Exchange rate
+- Shows today's official **USD → UZS** rate from the Central Bank of Uzbekistan ([cbu.uz](https://cbu.uz)). You can also pick EUR, GBP, RUB, KZT or AED.
+- Converts your monthly payment and total into so'm (or into dollars if you work in so'm).
+
+### Part 2: Deposit income
+Below the divider is a second calculator for a **so'm deposit**:
+- Enter an amount in **US dollars**. It is converted to so'm automatically at the Central Bank rate. You can change the rate to your bank's rate.
+- Choose the **yearly deposit rate** (around 20% is typical in Uzbekistan).
+- See your **monthly income in so'm**, its dollar equivalent, and the yearly income.
+- **How much to invest:** enter the monthly income you want in so'm, or tap the button to use your apartment's monthly payment, and it shows how many **US dollars** you need to deposit.
+
 ---
 
 ## How the payment is calculated
@@ -54,7 +65,18 @@ If the rate is 0%, the monthly payment is simply `L ÷ n`.
 
 **Example:** a price of 120,000, a 20% first payment (24,000), 12% per year and 36 months give a monthly payment of about **3,188.57**.
 
+**Deposit income** uses simple monthly interest:
+
+```
+monthly income (so'm) = dollars × exchange rate × yearly rate ÷ 12 ÷ 100
+dollars needed        = wanted monthly income × 12 × 100 ÷ yearly rate ÷ exchange rate
+```
+
+**Example:** $50,000 at 12,012.30 so'm per dollar and 20% a year gives about **10,010,250 so'm per month**.
+
 > Fees, insurance and taxes are not included. Check the final numbers with your bank or developer.
+
+> **Live rates:** when you open `index.html` directly or from GitHub Pages, the app loads today's rate from cbu.uz. The claude.ai link cannot connect to other websites, so it shows the last saved rate and labels it with its date.
 
 ---
 

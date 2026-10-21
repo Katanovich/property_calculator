@@ -201,6 +201,41 @@ input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0 0; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
 .legend b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
 
+.conv { font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Exchange rate strip */
+.rate { padding: 16px 20px; display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
+.rate-main { display: grid; gap: 4px; min-width: 0; }
+.rate-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.rate-value { font-family: var(--font-display); font-weight: 700; font-size: clamp(20px, 3vw, 26px); font-variant-numeric: tabular-nums; }
+.rate-diff { font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rate-meta { font-size: 12.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.rate-meta a { color: var(--accent); }
+.status { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.status.live { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+.rate-pick { width: 170px; }
+
+/* Part 2: deposit income */
+.divider { display: flex; align-items: center; gap: 14px; margin-block: 20px 4px; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 2px; border-radius: 2px; background: var(--accent); opacity: .45; }
+.divider span {
+  font-family: var(--font-display); font-weight: 700; font-size: 13px; letter-spacing: .12em; text-transform: uppercase;
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 999px; padding: 7px 16px;
+  box-shadow: 0 6px 18px -10px rgba(10, 20, 40, 0.35); text-align: center;
+}
+.dep-head { display: grid; gap: 4px; }
+.dep-head p { margin: 0; }
+.fx-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.goal { display: grid; gap: 12px; padding: 18px 20px; border-radius: 12px; border: 2px solid var(--accent); background: var(--panel-solid); }
+.goal h2 { color: var(--accent); }
+.goal .toggle-btn { justify-self: start; }
+.goal-result { display: grid; gap: 2px; }
+.goal-result .k { font-size: 13px; color: var(--muted); }
+.goal-result .v {
+  font-family: var(--font-display); font-weight: 800; font-size: clamp(26px, 4vw, 36px); line-height: 1.1;
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+
 .cash-note { padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-solid); font-size: 14px; }
 
 /* Tables */
@@ -248,6 +283,34 @@ tbody tr + tr td { border-top: 1px solid var(--line); }
     <h1 data-i18n="title">Apartment Installment Calculator</h1>
     <p class="lede" data-i18n="lede">Enter the apartment price, pick how much you pay up front, and see your monthly installment for terms up to 60 months.</p>
   </header>
+
+  <section class="panel rate" aria-labelledby="rateTitle">
+    <div class="rate-main">
+      <h2 id="rateTitle" data-i18n="rateTitle">Exchange rate today</h2>
+      <div class="rate-line">
+        <span class="rate-value" id="rateValue">—</span>
+        <span class="rate-diff" id="rateDiff"></span>
+      </div>
+      <div class="rate-meta">
+        <span class="status" id="rateStatus"></span>
+        <span id="rateText"></span>
+        <span><span data-i18n="rateSource">Central Bank of Uzbekistan</span>, <a href="https://cbu.uz" target="_blank" rel="noopener">cbu.uz</a></span>
+      </div>
+    </div>
+    <div class="field rate-pick">
+      <label for="rateCcy" data-i18n="rateFor">Currency to so'm</label>
+      <div class="input">
+        <select id="rateCcy">
+          <option value="USD">USD</option>
+          <option value="EUR">EUR</option>
+          <option value="GBP">GBP</option>
+          <option value="RUB">RUB</option>
+          <option value="KZT">KZT</option>
+          <option value="AED">AED</option>
+        </select>
+      </div>
+    </div>
+  </section>
 
   <section class="panel main" aria-label="Calculator">
     <form class="inputs" id="form" novalidate>
@@ -325,6 +388,7 @@ tbody tr + tr td { border-top: 1px solid var(--line); }
         <span class="label" id="heroLabel">Monthly payment</span>
         <span class="value" id="monthly">—</span>
         <span class="sub" id="heroSub"></span>
+        <span class="conv" id="heroConv"></span>
       </div>
 
       <div class="stats" id="stats">
@@ -380,6 +444,77 @@ tbody tr + tr td { border-top: 1px solid var(--line); }
   </section>
 
   <p class="foot" data-i18n="foot">Equal monthly payments (annuity). Interest is charged monthly at the yearly rate ÷ 12. Fees, insurance and taxes are not included.</p>
+
+  <div class="divider" role="separator"><span data-i18n="partTwo">Deposit income</span></div>
+
+  <section class="panel main" id="deposit" aria-labelledby="depTitle">
+    <form class="inputs" id="depForm" novalidate>
+      <div class="dep-head">
+        <h2 id="depTitle" data-i18n="depTitle">Deposit income in so'm</h2>
+        <p class="hint" data-i18n="depLede">Put US dollars on a so'm deposit and see the monthly interest you receive.</p>
+      </div>
+      <div class="field">
+        <label for="depUsd" data-i18n="depAmount">Amount you invest</label>
+        <div class="input"><span class="unit pre">$</span><input id="depUsd" type="number" inputmode="decimal" min="0" step="1000" value="50000"></div>
+        <span class="hint" id="depUsdSom"></span>
+      </div>
+      <div class="field">
+        <label for="depRate" data-i18n="depRate">Deposit rate (per year)</label>
+        <div class="input"><input id="depRate" type="number" inputmode="decimal" min="0" max="100" step="0.5" value="20"><span class="unit" data-i18n="perYear">% / yr</span></div>
+        <input id="depRateRange" type="range" min="0" max="40" step="0.5" value="20" aria-label="%">
+        <div class="chips" id="depChips">
+          <button type="button" data-rate="16">16%</button>
+          <button type="button" data-rate="18">18%</button>
+          <button type="button" data-rate="20">20%</button>
+          <button type="button" data-rate="22">22%</button>
+          <button type="button" data-rate="24">24%</button>
+        </div>
+        <span class="hint" data-i18n="depRateHint">Banks in Uzbekistan usually offer around 20% a year on so'm deposits.</span>
+      </div>
+      <div class="field">
+        <label for="depFx" data-i18n="depFx">Exchange rate</label>
+        <div class="input"><input id="depFx" type="number" inputmode="decimal" min="0" step="0.01"><span class="unit" data-i18n="fxUnit">so'm / $</span></div>
+        <div class="fx-row">
+          <span class="hint" data-i18n="depFxHint">Filled in from the Central Bank rate. Change it to your bank's rate if it differs.</span>
+          <button type="button" class="toggle-btn" id="fxReset" data-i18n="fxReset">Use Central Bank rate</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="results" aria-live="polite">
+      <div class="hero-num">
+        <span class="label" data-i18n="depMonthly">Monthly income</span>
+        <span class="value" id="depMonthlyVal">—</span>
+        <span class="sub" id="depMonthlyUsd"></span>
+      </div>
+      <div class="stats">
+        <div class="stat"><span class="k" data-i18n="depInSom">Deposit in so'm</span><span class="v" id="dSom">—</span></div>
+        <div class="stat"><span class="k" data-i18n="depYearly">Yearly income</span><span class="v" id="dYear">—</span></div>
+      </div>
+
+      <div class="goal">
+        <h2 data-i18n="goalTitle">How much to invest</h2>
+        <div class="field">
+          <label for="goalSom" data-i18n="goalTarget">Monthly income you want</label>
+          <div class="input"><input id="goalSom" type="number" inputmode="decimal" min="0" step="100000" value="10000000"><span class="unit" data-i18n="uzs">UZS</span></div>
+        </div>
+        <div class="chips" id="goalChips">
+          <button type="button" data-som="5000000">5 000 000</button>
+          <button type="button" data-som="10000000">10 000 000</button>
+          <button type="button" data-som="20000000">20 000 000</button>
+          <button type="button" data-som="50000000">50 000 000</button>
+        </div>
+        <button type="button" class="toggle-btn" id="goalUse" hidden></button>
+        <div class="goal-result">
+          <span class="k" data-i18n="goalNeed">You need to invest</span>
+          <span class="v" id="goalUsd">—</span>
+          <span class="conv" id="goalSomNeed"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot" data-i18n="depNote">Interest is calculated simply: amount × yearly rate ÷ 12, paid monthly. Taxes and bank fees are not included.</p>
 </div>
 
 <script>
@@ -415,6 +550,26 @@ tbody tr + tr td { border-top: 1px solid var(--line); }
       subCovered: "Your first payment covers the full price. Nothing left to pay monthly.",
       subCash: (a, p) => `${a} m² at ${p} per m²`,
       noRows: "No monthly payments. The first payment covers the full price.",
+      rateTitle: "Exchange rate today", rateFor: "Currency to so'm", rateSource: "Central Bank of Uzbekistan",
+      live: "Live", saved: "Saved",
+      rateLive: (d) => `Official rate for ${d}.`,
+      rateSaved: (d) => `Today's rate could not be loaded here. Showing the official rate for ${d}.`,
+      convMonthly: (m, tot) => `≈ ${m} per month, ${tot} in total, at this rate`,
+      convOnce: (v) => `≈ ${v} at this rate`,
+      partTwo: "Deposit income", depTitle: "Deposit income in so'm",
+      depLede: "Put US dollars on a so'm deposit and see the monthly interest you receive.",
+      depAmount: "Amount you invest", depEquals: (v) => `= ${v} at the rate below`,
+      depRate: "Deposit rate (per year)",
+      depRateHint: "Banks in Uzbekistan usually offer around 20% a year on so'm deposits.",
+      depFx: "Exchange rate", fxUnit: "so'm / $",
+      depFxHint: "Filled in from the Central Bank rate. Change it to your bank's rate if it differs.",
+      fxReset: "Use Central Bank rate",
+      depMonthly: "Monthly income", depMonthlySub: (v) => `≈ ${v} per month`,
+      depInSom: "Deposit in so'm", depYearly: "Yearly income",
+      goalTitle: "How much to invest", goalTarget: "Monthly income you want",
+      goalUsePay: (v) => `Use my monthly payment (${v})`,
+      goalNeed: "You need to invest", goalNeedSub: (v) => `That is ${v} at this rate`,
+      depNote: "Interest is calculated simply: amount × yearly rate ÷ 12, paid monthly. Taxes and bank fees are not included.",
     },
     ru: {
       locale: "ru-RU",
@@ -443,6 +598,26 @@ tbody tr + tr td { border-top: 1px solid var(--line); }
       subCovered: "Первый взнос покрывает всю стоимость. Ежемесячных платежей нет.",
       subCash: (a, p) => `${a} м² по ${p} за м²`,
       noRows: "Ежемесячных платежей нет. Первый взнос покрывает всю стоимость.",
+      rateTitle: "Курс валют на сегодня", rateFor: "Валюта к суму", rateSource: "Центральный банк Узбекистана",
+      live: "Онлайн", saved: "Сохранён",
+      rateLive: (d) => `Официальный курс на ${d}.`,
+      rateSaved: (d) => `Сегодняшний курс здесь загрузить не удалось. Показан официальный курс на ${d}.`,
+      convMonthly: (m, tot) => `≈ ${m} в месяц, всего ${tot} по этому курсу`,
+      convOnce: (v) => `≈ ${v} по этому курсу`,
+      partTwo: "Доход от вклада", depTitle: "Доход от вклада в сумах",
+      depLede: "Положите доллары на вклад в сумах и узнайте ежемесячный доход по процентам.",
+      depAmount: "Сумма вклада", depEquals: (v) => `= ${v} по курсу ниже`,
+      depRate: "Ставка по вкладу (годовая)",
+      depRateHint: "Банки Узбекистана обычно предлагают около 20% годовых по вкладам в сумах.",
+      depFx: "Курс обмена", fxUnit: "сум / $",
+      depFxHint: "Подставлен курс ЦБ. Измените его на курс вашего банка, если он другой.",
+      fxReset: "Взять курс ЦБ",
+      depMonthly: "Доход в месяц", depMonthlySub: (v) => `≈ ${v} в месяц`,
+      depInSom: "Вклад в сумах", depYearly: "Доход за год",
+      goalTitle: "Сколько нужно вложить", goalTarget: "Желаемый доход в месяц",
+      goalUsePay: (v) => `Взять мой ежемесячный платёж (${v})`,
+      goalNeed: "Нужно вложить", goalNeedSub: (v) => `Это ${v} по этому курсу`,
+      depNote: "Проценты считаются просто: сумма × годовая ставка ÷ 12, выплата ежемесячно. Налоги и комиссии банка не учтены.",
     },
     uz: {
       locale: "uz-UZ",
@@ -471,6 +646,26 @@ tbody tr + tr td { border-top: 1px solid var(--line); }
       subCovered: "Boshlang'ich to'lov butun narxni qoplaydi. Oylik to'lov yo'q.",
       subCash: (a, p) => `${a} m², har 1 m² uchun ${p}`,
       noRows: "Oylik to'lovlar yo'q. Boshlang'ich to'lov butun narxni qoplaydi.",
+      rateTitle: "Bugungi valyuta kursi", rateFor: "So'mga nisbatan valyuta", rateSource: "O'zbekiston Respublikasi Markaziy banki",
+      live: "Onlayn", saved: "Saqlangan",
+      rateLive: (d) => `${d} uchun rasmiy kurs.`,
+      rateSaved: (d) => `Bugungi kursni bu yerda yuklab bo'lmadi. ${d} uchun rasmiy kurs ko'rsatilmoqda.`,
+      convMonthly: (m, tot) => `Bu kurs bo'yicha ≈ oyiga ${m}, jami ${tot}`,
+      convOnce: (v) => `Bu kurs bo'yicha ≈ ${v}`,
+      partTwo: "Omonat daromadi", depTitle: "So'mdagi omonat daromadi",
+      depLede: "Dollarni so'mdagi omonatga qo'ying va har oy qancha foiz daromad olishingizni ko'ring.",
+      depAmount: "Qo'yiladigan summa", depEquals: (v) => `= ${v} quyidagi kurs bo'yicha`,
+      depRate: "Omonat stavkasi (yillik)",
+      depRateHint: "O'zbekiston banklari so'mdagi omonatlarga odatda yiliga 20% atrofida taklif qiladi.",
+      depFx: "Ayirboshlash kursi", fxUnit: "so'm / $",
+      depFxHint: "Markaziy bank kursi qo'yilgan. Bankingiz kursi boshqacha bo'lsa, o'zgartiring.",
+      fxReset: "Markaziy bank kursi",
+      depMonthly: "Oylik daromad", depMonthlySub: (v) => `≈ oyiga ${v}`,
+      depInSom: "Omonat so'mda", depYearly: "Yillik daromad",
+      goalTitle: "Qancha qo'yish kerak", goalTarget: "Istagan oylik daromadingiz",
+      goalUsePay: (v) => `Oylik to'lovimni olish (${v})`,
+      goalNeed: "Qo'yish kerak", goalNeedSub: (v) => `Bu kurs bo'yicha ${v}`,
+      depNote: "Foiz oddiy hisoblanadi: summa × yillik stavka ÷ 12, har oy to'lanadi. Soliqlar va bank komissiyalari kiritilmagan.",
     },
   };
   function ruMonths(n) {
@@ -496,7 +691,38 @@ tbody tr + tr td { border-top: 1px solid var(--line); }
     set(k, v) { try { localStorage.setItem(k, v); } catch {} },
   };
 
-  const state = { mode: "credit", showAll: false, lang: "en", currency: "USD" };
+  // Official Central Bank of Uzbekistan rates (so'm per 1 unit), saved on 21.10.2026.
+  // Replaced with today's rates when cbu.uz can be reached.
+  const RATES = {
+    date: "21.10.2026", live: false,
+    list: {
+      USD: { rate: 12012.30, diff: -32.42 },
+      EUR: { rate: 13466.99, diff: -58.03 },
+      GBP: { rate: 16026.81, diff: -36.03 },
+      RUB: { rate: 145.33, diff: -0.13 },
+      KZT: { rate: 26.68, diff: 0.04 },
+      AED: { rate: 3270.70, diff: -8.83 },
+    },
+  };
+  async function loadRates() {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 6000);
+      const res = await fetch("https://cbu.uz/ru/arkhiv-kursov-valyut/json/", { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!res.ok) return;
+      const data = await res.json();
+      data.forEach((r) => {
+        if (!RATES.list[r.Ccy]) return;
+        RATES.list[r.Ccy] = { rate: parseFloat(r.Rate) / (parseFloat(r.Nominal) || 1), diff: parseFloat(r.Diff) || 0 };
+        if (r.Ccy === "USD") RATES.date = r.Date;
+      });
+      RATES.live = true;
+      render();
+    } catch {}
+  }
+
+  const state = { mode: "credit", showAll: false, lang: "en", currency: "USD", rateCcy: "USD" };
   const savedLang = store.get("calc.lang");
   if (savedLang && I18N[savedLang]) state.lang = savedLang;
   const savedCur = store.get("calc.currency");
@@ -504,15 +730,41 @@ tbody tr + tr td { border-top: 1px solid var(--line); }
 
   const T = () => I18N[state.lang];
   const curObj = () => CURRENCIES.find((c) => c.code === state.currency);
-  const curPre = () => curObj().pre || "";
-  const curPost = () => (curObj().post ? curObj().post(T()) : "");
+  const preOf = (c) => c.pre || "";
+  const postOf = (c) => (c.post ? c.post(T()) : "");
+  const curPre = () => preOf(curObj());
+  const curPost = () => postOf(curObj());
 
-  const fmt = (n, d = 0) => {
+  const fmtC = (n, d, code) => {
     if (!isFinite(n)) return "—";
+    const c = CURRENCIES.find((x) => x.code === code);
     const s = n.toLocaleString(T().locale, { minimumFractionDigits: d, maximumFractionDigits: d });
-    const post = curPost();
-    return curPre() + s + (post ? " " + post : "");
+    const post = postOf(c);
+    return preOf(c) + s + (post ? " " + post : "");
   };
+  const fmt = (n, d = 0) => fmtC(n, d, state.currency);
+
+  // Converts an amount in the chosen currency: foreign -> so'm, so'm -> USD.
+  function convert(v) {
+    const c = state.currency;
+    if (c === "UZS") return { v: v / RATES.list.USD.rate, code: "USD", d: 2 };
+    if (RATES.list[c]) return { v: v * RATES.list[c].rate, code: "UZS", d: 0 };
+    return null;
+  }
+  const fmtConv = (v) => { const c = convert(v); return c ? fmtC(c.v, c.d, c.code) : ""; };
+
+  function renderRate() {
+    const t = T();
+    const info = RATES.list[state.rateCcy];
+    $("rateValue").textContent = `1 ${state.rateCcy} = ${fmtC(info.rate, 2, "UZS")}`;
+    $("rateDiff").textContent = info.diff
+      ? `${info.diff > 0 ? "▲" : "▼"} ${fmtC(Math.abs(info.diff), 2, "UZS")}`
+      : "";
+    $("rateStatus").textContent = RATES.live ? t.live : t.saved;
+    $("rateStatus").classList.toggle("live", RATES.live);
+    $("rateText").textContent = RATES.live ? t.rateLive(RATES.date) : t.rateSaved(RATES.date);
+  }
+  $("rateCcy").addEventListener("change", () => { state.rateCcy = $("rateCcy").value; renderRate(); });
   const num = (el) => { const v = parseFloat(el.value); return isFinite(v) ? v : 0; };
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
@@ -610,7 +862,11 @@ tbody tr + tr td { border-top: 1px solid var(--line); }
   });
 
   // --- render --------------------------------------------------------------
-  function render() {
+  let monthlyUZS = NaN; // part 1 monthly payment in so'm, offered as the deposit goal
+
+  function render() { renderCalc(); renderDeposit(); }
+
+  function renderCalc() {
     const t = T();
     const price = Math.max(0, num($("price")));
     const area = num($("area"));
@@ -619,6 +875,7 @@ tbody tr + tr td { border-top: 1px solid var(--line); }
     const down = clamp(num($("down")), 0, price);
     const cash = state.mode === "cash";
     const areaTxt = area.toLocaleString(t.locale);
+    renderRate();
 
     $("credit-fields").hidden = cash;
     $("scenarioSection").hidden = cash;
@@ -629,10 +886,12 @@ tbody tr + tr td { border-top: 1px solid var(--line); }
     const ppm = area > 0 ? price / area : NaN;
     $("sPpm").textContent = fmt(ppm);
 
+    monthlyUZS = NaN;
     if (cash) {
       $("heroLabel").textContent = t.payInFull;
       $("monthly").textContent = fmt(price);
       $("heroSub").textContent = area > 0 ? t.subCash(areaTxt, fmt(ppm)) : "";
+      $("heroConv").textContent = convert(price) ? t.convOnce(fmtConv(price)) : "";
       $("sPpmReal").textContent = fmt(ppm);
       $("breakdown").hidden = true;
       return;
@@ -640,9 +899,16 @@ tbody tr + tr td { border-top: 1px solid var(--line); }
     $("breakdown").hidden = false;
 
     const r = calc(price, down, rate, months);
+    if (r.loan > 0) {
+      if (state.currency === "UZS") monthlyUZS = r.monthly;
+      else if (RATES.list[state.currency]) monthlyUZS = r.monthly * RATES.list[state.currency].rate;
+    }
     $("heroLabel").textContent = t.monthly;
     $("monthly").textContent = fmt(r.monthly, 2);
     $("heroSub").textContent = r.loan > 0 ? t.subCredit(months, fmt(down)) : t.subCovered;
+    $("heroConv").textContent = convert(r.total) && r.loan > 0
+      ? t.convMonthly(fmtConv(r.monthly), fmtConv(r.total))
+      : "";
     $("sDown").textContent = fmt(down);
     $("sLoan").textContent = fmt(r.loan);
     $("sInterest").textContent = fmt(r.interest);
@@ -696,6 +962,55 @@ tbody tr + tr td { border-top: 1px solid var(--line); }
       : `<tr><td colspan="5" style="text-align:left">${t.noRows}</td></tr>`;
   }
 
+  // --- part 2: deposit income ---------------------------------------------
+  const dep = { fxTouched: false };
+
+  function renderDeposit() {
+    const t = T();
+    if (!dep.fxTouched) $("depFx").value = RATES.list.USD.rate.toFixed(2);
+    const fx = num($("depFx"));
+    const usd = Math.max(0, num($("depUsd")));
+    const rate = Math.max(0, num($("depRate")));
+    const som = usd * fx;
+    const monthly = som * rate / 1200;
+
+    $("depUsdSom").textContent = t.depEquals(fmtC(som, 0, "UZS"));
+    $("depMonthlyVal").textContent = fmtC(monthly, 0, "UZS");
+    $("depMonthlyUsd").textContent = fx > 0 ? t.depMonthlySub(fmtC(monthly / fx, 2, "USD")) : "";
+    $("dSom").textContent = fmtC(som, 0, "UZS");
+    $("dYear").textContent = fmtC(monthly * 12, 0, "UZS");
+    document.querySelectorAll("#depChips button").forEach((b) => b.setAttribute("aria-pressed", +b.dataset.rate === rate));
+
+    const canUsePay = monthlyUZS > 0;
+    $("goalUse").hidden = !canUsePay;
+    if (canUsePay) $("goalUse").textContent = t.goalUsePay(fmtC(monthlyUZS, 0, "UZS"));
+    const target = Math.max(0, num($("goalSom")));
+    document.querySelectorAll("#goalChips button").forEach((b) => {
+      b.textContent = fmtC(+b.dataset.som, 0, "UZS");
+      b.setAttribute("aria-pressed", +b.dataset.som === target);
+    });
+    const needSom = rate > 0 ? target * 1200 / rate : NaN;
+    $("goalUsd").textContent = fx > 0 ? fmtC(needSom / fx, 0, "USD") : "—";
+    $("goalSomNeed").textContent = isFinite(needSom) ? t.goalNeedSub(fmtC(needSom, 0, "UZS")) : "";
+  }
+
+  $("depUsd").addEventListener("input", renderDeposit);
+  $("depRate").addEventListener("input", () => { $("depRateRange").value = num($("depRate")); renderDeposit(); });
+  $("depRateRange").addEventListener("input", () => { $("depRate").value = $("depRateRange").value; renderDeposit(); });
+  $("depChips").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-rate]"); if (!b) return;
+    $("depRate").value = b.dataset.rate; $("depRateRange").value = b.dataset.rate; renderDeposit();
+  });
+  $("depFx").addEventListener("input", () => { dep.fxTouched = true; renderDeposit(); });
+  $("fxReset").addEventListener("click", () => { dep.fxTouched = false; renderDeposit(); });
+  $("goalSom").addEventListener("input", renderDeposit);
+  $("goalUse").addEventListener("click", () => { $("goalSom").value = Math.round(monthlyUZS); renderDeposit(); });
+  $("goalChips").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-som]"); if (!b) return;
+    $("goalSom").value = b.dataset.som; renderDeposit();
+  });
+  $("depForm").addEventListener("submit", (e) => e.preventDefault());
+
   function applyScenario(tr) {
     if (!tr) return;
     $("downPct").value = tr.dataset.pct; syncDownFromPct(); render();
@@ -708,6 +1023,7 @@ tbody tr + tr td { border-top: 1px solid var(--line); }
   syncPpmFromPrice();
   syncDownFromPct();
   applyLang();
+  loadRates();
 
   // --- background: modern apartment complex (kept low and muted) ----------
   const cv = $("skyline");
