@@ -92,3 +92,4 @@ property_calculator/
 ├── index.html   # the whole app: layout, styles, translations and calculations
 └── README.md    # this file
 ```
+# property_calculator
